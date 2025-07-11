@@ -1,0 +1,34 @@
+/* ✅ Always start with these @imports first */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* ✅ Custom CSS below */
+body {
+  background: linear-gradient(135deg, theme('colors.primary.light'), theme('colors.secondary.light'));
+  min-height: 100vh;
+}
+
+.bg-primary {
+  background-color: theme('colors.primary.DEFAULT');
+}
+.bg-secondary {
+  background-color: theme('colors.secondary.DEFAULT');
+}
+.bg-accent {
+  background-color: theme('colors.accent.DEFAULT');
+}
+.text-primary {
+  color: theme('colors.primary.dark');
+}
+.text-secondary {
+  color: theme('colors.secondary.dark');
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;  
+  scrollbar-width: none; 
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; 
+}
