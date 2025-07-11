@@ -5,7 +5,7 @@ import mongoose from 'mongoose'; // Import mongoose for ObjectId validation
 
 const router = express.Router();
 
-// User Registration (if not already handled in server.js directly)
+// User Registration
 router.post('/register', async (req, res) => {
   try {
     const { username, email, password } = req.body; // Assuming username is fullName
@@ -29,7 +29,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// User Login (if not already handled in server.js directly)
+// User Login
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -40,7 +40,6 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
-    (base)
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -69,8 +68,9 @@ router.get('/', async (req, res) => {
 
 // Get a single user's profile information
 // This combined route now provides 'fullName', '_id', and 'email'.
-// If your User model in User.js includes 'bio', 'postsCount', 'followersCount',
-// 'followingCount', or 'profilePicture', you should also add them to the .select() method.
+// IMPORTANT: If your User model in User.js includes 'bio', 'postsCount', 'followersCount',
+// 'followingCount', or 'profilePicture', you should add them to the .select() method below
+// (e.g., .select('fullName _id email bio postsCount followersCount followingCount profilePicture')).
 router.get('/get-user/:userId', async (req, res) => {
   try {
     const { userId } = req.params;

@@ -5,15 +5,11 @@ import mongoose from 'mongoose';
 
 const router = express.Router();
 
-// Get all conversations for the current user - NOW EXPECTS userId AS QUERY PARAMETER
-router.get('/conversations', async (req, res) => { // Changed route path back to no path parameter
+// Get all conversations for the current user
+router.get('/conversations', async (req, res) => {
   try {
-    const userId = req.query.id; // Get userId from query parameters (e.g., ?id=...)
-
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ message: 'Invalid user ID format' });
-    }
-
+    const userId = req.query.id;
+    
     // Find all unique users the current user has messaged with
     const conversations = await Message.aggregate([
       {
@@ -40,7 +36,7 @@ router.get('/conversations', async (req, res) => { // Changed route path back to
           unreadCount: {
             $sum: {
               $cond: [
-                {
+                { 
                   $and: [
                     { $eq: ['$receiver', new mongoose.Types.ObjectId(userId)] },
                     { $ne: ['$read', true] }
@@ -55,22 +51,20 @@ router.get('/conversations', async (req, res) => { // Changed route path back to
       },
       {
         $lookup: {
-          from: 'users', // The collection name for User model
+          from: 'users',
           localField: '_id',
           foreignField: '_id',
-          as: 'user' // Change 'participant' to 'user' to match frontend expectation
+          as: 'user'
         }
       },
-      {
-        $unwind: '$user' // Unwind 'user'
-      },
+      { $unwind: '$user' },
       {
         $project: {
-          _id: 1, // Keep _id for key prop in React
+          _id: 1,
           user: {
             _id: '$user._id',
-            fullName: '$user.fullName', // Ensure fullName is returned
-            // Add other user fields if needed, e.g., profilePicture
+            name: '$user.fullName',
+            avatar: '$user.profilePicture'
           },
           lastMessage: {
             content: '$lastMessage.content',
@@ -93,9 +87,7 @@ router.get('/conversations', async (req, res) => { // Changed route path back to
   }
 });
 
-// Get messages between current user and another user
-// This route is for fetching specific chat messages, not conversations list
-// This route will still use path parameters as it's for a specific chat
+// Get messages between current user and another user - CORRECTED ROUTE
 router.get('/:user1Id/:user2Id', async (req, res) => {
   try {
     const { user1Id, user2Id } = req.params; // Extract both user IDs from path parameters
@@ -135,15 +127,15 @@ router.get('/:user1Id/:user2Id', async (req, res) => {
 // Send a new message
 router.post('/:userId', async (req, res) => {
   try {
-    const currentUserId = req.query.id; // Sender's ID from query
-    const otherUserId = req.params.userId; // Receiver's ID from path
+    const currentUserId = req.query.id; 
+    const otherUserId = req.params.userId;
     const { content } = req.body;
 
     if (!content || !content.trim()) {
       return res.status(400).json({ message: 'Message content is required' });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(currentUserId) || !mongoose.Types.ObjectId.isValid(otherUserId)) {
+    if (!mongoose.Types.ObjectId.isValid(otherUserId)) {
       return res.status(400).json({ message: 'Invalid user ID' });
     }
 
@@ -170,11 +162,9 @@ router.post('/:userId', async (req, res) => {
         .populate('sender', 'fullName profilePicture')
         .populate('receiver', 'fullName profilePicture');
       
-      // Emit to sender and receiver
+      io.to(`user_${otherUserId}`).emit('newMessage', populatedMessage);
+      // Also emit back to sender for UI update in their own chat window
       io.to(`user_${currentUserId}`).emit('newMessage', populatedMessage);
-      if (currentUserId !== otherUserId) { // Avoid double-emitting if chatting with self
-        io.to(`user_${otherUserId}`).emit('newMessage', populatedMessage);
-      }
     }
 
     res.status(201).json(message);

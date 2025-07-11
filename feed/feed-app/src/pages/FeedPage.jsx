@@ -1,7 +1,7 @@
 // FeedPage.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // Ensure useNavigate is imported
 
 // Move handleDelete above FeedPage so fetchPosts is in scope
 const handleDeleteFactory = (fetchPosts) => async (postId) => {
@@ -23,248 +23,245 @@ export default function FeedPage() {
   const [error, setError] = useState(null); // General error for fetching posts
   const [commentError, setCommentError] = useState(null); // Specific error for comments
   const [postError, setPostError] = useState(null); // Specific error for new post upload
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // Get the navigate function from react-router-dom
 
-  const userId = localStorage.getItem("userId");
+  const userId = localStorage.getItem("userId"); // Get current logged-in user's ID
 
   // Fetch all posts
   const fetchPosts = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await axios.get("http://localhost:5000/api/posts");
-      const postsWithLikesCount = res.data.map((post) => ({
-        ...post,
-        likesCount: post.likes ? post.likes.length : 0,
-        isLiked: post.likes ? post.likes.includes(userId) : false,
-      }));
-      setPosts(postsWithLikesCount);
+      // IMPORTANT: Ensure your backend populates the 'user' field in Post model
+      // so post.user._id and post.user.fullName are available.
+      // Example backend (in server.js or post routes):
+      // const posts = await Post.find().populate('user', 'fullName').sort({ createdAt: -1 });
+      const response = await axios.get("http://localhost:5000/api/posts");
+      setPosts(response.data);
     } catch (err) {
       console.error("Error fetching posts:", err);
-      setError("Failed to load posts. Please try again later.");
+      setError("Failed to load posts.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Create handleDelete with fetchPosts in scope
-  const handleDelete = handleDeleteFactory(fetchPosts);
+  const handleDeletePost = handleDeleteFactory(fetchPosts);
 
-  // Handle profile click to go to user's profile
-  const handleProfileClick = (profileUserId) => { // Added profileUserId parameter
-    navigate(`/profile/${profileUserId}`);
+  const handleLike = async (postId) => {
+    try {
+      // Assuming your API expects userId in the body for liking
+      await axios.post(`http://localhost:5000/api/posts/${postId}/like`, { userId });
+      fetchPosts(); // Re-fetch posts to update like counts and status
+    } catch (error) {
+      console.error("Error liking post:", error);
+      // You might want to set a specific error state for liking
+    }
   };
 
-  // Check if userId exists on load, otherwise navigate to home
-  useEffect(() => {
-    if (!userId) {
-      navigate("/");
-    } else {
-      fetchPosts();
+  const addComment = async (postId) => {
+    const text = commentInput[postId]?.trim();
+    if (!text) {
+      setCommentError("Comment cannot be empty.");
+      return;
     }
-  }, [userId, navigate]);
+    setCommentError(null);
+    try {
+      await axios.post(`http://localhost:5000/api/posts/${postId}/comments`, {
+        userId, // Current user is the sender
+        text,
+      });
+      setCommentInput((prev) => ({ ...prev, [postId]: "" })); // Clear input
+      fetchPosts(); // Re-fetch posts to show the new comment
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      setCommentError("Failed to add comment.");
+    }
+  };
 
-  // Upload a new post
-  const uploadPost = async () => {
+  // NEW OR MODIFIED: handleProfileClick function
+  const handleProfileClick = (profileUserId) => {
+    // Check if the user clicked on their own avatar
+    if (profileUserId === userId) {
+      // If it's the current user, navigate to their own profile page
+      navigate(`/profile/${profileUserId}`);
+    } else {
+      // If it's another user, navigate to the chat page with their ID
+      navigate(`/chat/${profileUserId}`); // This navigates to ChatPage with the user's ID
+    }
+  };
+
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  const handlePostSubmit = async (e) => {
+    e.preventDefault();
     if (!description.trim()) {
       setPostError("Post description cannot be empty.");
       return;
     }
     setPostError(null); // Clear previous errors
-    
     try {
-      await axios.post("http://localhost:5000/api/posts", { 
-        description, 
-        userId 
+      await axios.post("http://localhost:5000/api/posts", {
+        userId, // The ID of the currently logged-in user
+        description: description.trim(),
       });
-      setDescription("");
-      fetchPosts(); // Refresh posts after upload
+      setDescription(""); // Clear input
+      fetchPosts(); // Re-fetch posts to show the new post
     } catch (error) {
-      console.error("Upload post error:", error);
-      setPostError("Failed to upload post. Please try again.");
+      console.error("Error creating post:", error);
+      setPostError("Failed to create post.");
     }
   };
-
-  // Like a post
-  const likePost = async (postId) => {
-    try {
-      await axios.post(`http://localhost:5000/api/posts/${postId}/like`, { userId });
-      fetchPosts(); // Refresh posts to update like count/status
-    } catch (error) {
-      console.error("Like post error:", error);
-      // Optionally set a general error message if needed
-    }
-  };
-
-  // Add a comment to a post
-  const addComment = async (postId) => {
-    if (!commentInput[postId]?.trim()) {
-      setCommentError("Comment cannot be empty.");
-      return;
-    }
-    setCommentError(null); // Clear previous comment errors
-
-    if (!userId) { // NEW: Check if userId exists
-      setCommentError("You must be logged in to comment.");
-      navigate("/login"); // Redirect to login
-      return; // Stop execution if userId is missing
-    }
-    
-    try {
-      await axios.post(`http://localhost:5000/api/posts/${postId}/comments`, {
-        userId, // This is the userId from localStorage
-        text: commentInput[postId]
-      });
-      
-      setCommentInput(prev => ({
-        ...prev,
-        [postId]: "" // Clear the specific comment input field
-      }));
-      
-      
-      fetchPosts(); // Refresh posts to show new comment
-    } catch (error) {
-      console.error("Add comment error:", error);
-      setCommentError("Failed to add comment. Please try again.");
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center p-8">
-        <p className="text-red-500 mb-4">{error}</p>
-        <button 
-          onClick={fetchPosts}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
-      {/* Create Post */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <textarea
-          className="w-full p-3 border rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          rows="3"
-          placeholder="What's on your mind?"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-        <div className="flex justify-end">
+    <div className="container mx-auto p-4 max-w-2xl">
+      {/* Post Creation Section */}
+      <div className="bg-white p-4 rounded-lg shadow-md mb-6">
+        <h2 className="text-xl font-semibold mb-3">Create New Post</h2>
+        <form onSubmit={handlePostSubmit}>
+          <textarea
+            className="w-full p-2 border rounded-md mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            rows="3"
+            placeholder="What's on your mind?"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          ></textarea>
+          {postError && <p className="text-red-500 text-sm mb-3">{postError}</p>}
           <button
-            onClick={uploadPost}
+            type="submit"
+            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors duration-200"
             disabled={!description.trim()}
-            className={`px-4 py-2 rounded-lg ${
-              description.trim()
-                ? 'bg-blue-500 text-white hover:bg-blue-600'
-                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-            }`}
           >
             Post
           </button>
-        </div>
-        {postError && <p className="text-red-500 text-sm mt-2">{postError}</p>}
+        </form>
       </div>
 
-      {/* Posts */}
-      {posts.length === 0 ? (
-        <div className="text-center py-10">
-          <p className="text-gray-500">No posts yet. Be the first to post something!</p>
-        </div>
-      ) : (
+      {isLoading && <p className="text-center text-gray-500">Loading posts...</p>}
+      {error && <p className="text-center text-red-500">{error}</p>}
+
+      {!isLoading && !error && posts.length === 0 && (
+        <p className="text-center text-gray-500">No posts to display.</p>
+      )}
+
+      {/* Posts Display */}
+      {!isLoading && !error && (
         posts.map((post) => (
-          <div key={post._id} className="bg-white rounded-lg shadow p-4 mb-6">
+          <div key={post._id} className="bg-white p-4 rounded-lg shadow-md mb-4">
             <div className="flex items-center mb-3">
-              <div 
+              {/* Avatar/Initial clickable */}
+              <div
                 className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-xl font-bold text-white mr-3 cursor-pointer"
-                onClick={() => handleProfileClick(post.user?._id)}> {/* Pass post.user._id */}
-                {post.user?.fullName?.charAt(0) || 'U'}
+                onClick={() => handleProfileClick(post.user?._id)} // Pass post.user._id
+              >
+                {post.user?.fullName?.charAt(0)?.toUpperCase() || 'U'} {/* Added toUpperCase() */}
               </div>
               <div>
-                <h3 className="font-semibold">{post.user?.fullName || 'Unknown User'}</h3>
-                <p className="text-xs text-gray-500">
+                {/* Link to user's profile, also clickable */}
+                <Link to={`/profile/${post.user?._id}`} className="font-semibold hover:underline">
+                  {post.user?.fullName || 'Unknown User'}
+                </Link>
+                <p className="text-gray-500 text-sm">
                   {new Date(post.createdAt).toLocaleString()}
                 </p>
               </div>
+
+              {/* Delete button (only for current user's posts) */}
+              {post.user?._id === userId && (
+                <button
+                  onClick={() => handleDeletePost(post._id)}
+                  className="ml-auto text-red-500 hover:text-red-700 text-sm"
+                >
+                  Delete
+                </button>
+              )}
             </div>
-            
-            <p className="mb-4">{post.description}</p>
-            
-            {/* Like and Comment Buttons */}
-            <div className="flex border-t border-b border-gray-100 py-2 mb-3">
+
+            <p className="text-gray-800 mb-3">{post.description}</p>
+
+            <div className="flex items-center space-x-4 text-gray-600 mb-3">
               <button
-                onClick={() => likePost(post._id)}
-                className={`flex-1 flex items-center justify-center py-2 rounded-lg mr-2 ${
-                  post.isLiked ? 'text-blue-500' : 'text-gray-500 hover:bg-gray-50'
-                }`}
+                onClick={() => handleLike(post._id)}
+                className={`flex items-center ${post.likes.includes(userId) ? 'text-blue-600' : ''}`}
               >
-                <span className="mr-1">👍</span> {post.likesCount || 0}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 mr-1"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                {post.likes.length} Likes
               </button>
-              <button className="flex-1 flex items-center justify-center py-2 rounded-lg text-gray-500 hover:bg-gray-50">
-                <span className="mr-1">💬</span> Comment
-              </button>
+              <span className="flex items-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 mr-1"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.76-1.39A9.964 9.964 0 005 15V3a2 2 0 00-2 2v9.964c0 .341.05.674.145.991C3.398 15.22 3.53 15.45 3.684 15.677l-.684.684c-.38.38-.85.626-1.378.751A.5.5 0 011 16.732V16c0-4.418 3.582-8 8-8s8 3.582 8 8zm-8-2V5h2v3H8z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                {post.comments.length} Comments
+              </span>
             </div>
-            
-            {/* Comments */}
-            <div className="mt-3">
-            {post.comments?.length > 0 && (
-              <div className="space-y-3 mb-3">
+
+            {/* Comments Section */}
+            {post.comments && post.comments.length > 0 && (
+              <div className="mt-3 border-t pt-3">
+                <h4 className="font-semibold text-gray-700 mb-2">Comments:</h4>
                 {post.comments.map((comment) => (
-                  <div key={comment._id} className="flex items-start">
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600 mr-2">
-                      {comment.sender?.fullName?.charAt(0) || 'U'} {/* Change from comment.user to comment.sender */}
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-2 flex-1">
-                      <p className="font-medium text-sm">{comment.sender?.fullName || 'Unknown User'}</p> {/* Change from comment.user to comment.sender */}
-                      <p className="text-sm">{comment.text}</p>
-                    </div>
+                  <div key={comment._id} className="bg-gray-100 p-2 rounded-md mb-2 text-sm">
+                    <span className="font-semibold mr-1">
+                      {comment.sender?.fullName || 'Unknown User'}:
+                    </span>
+                    {comment.text}
                   </div>
                 ))}
               </div>
             )}
               
-              {/* Add Comment */}
-              <div className="flex mt-2">
-                <input
-                  type="text"
-                  className="flex-1 border rounded-l-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  placeholder="Write a comment..."
-                  value={commentInput[post._id] || ''}
-                  onChange={(e) => 
-                    setCommentInput(prev => ({
-                      ...prev,
-                      [post._id]: e.target.value
-                    }))
+            {/* Add Comment */}
+            <div className="flex mt-2">
+              <input
+                type="text"
+                className="flex-1 border rounded-l-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="Write a comment..."
+                value={commentInput[post._id] || ''}
+                onChange={(e) => 
+                  setCommentInput(prev => ({
+                    ...prev,
+                    [post._id]: e.target.value
+                  }))
+                }
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    addComment(post._id);
                   }
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      addComment(post._id);
-                    }
-                  }}
-                />
-                <button
-                  type="button" // Explicitly set type to "button" to prevent form submission
-                  onClick={() => addComment(post._id)}
-                  disabled={!commentInput[post._id]?.trim()}
-                  className="bg-blue-500 text-white px-3 rounded-r-lg text-sm hover:bg-blue-600 disabled:opacity-50"
-                >
-                  Post
-                </button>
-              </div>
-              {commentError && <p className="text-red-500 text-sm mt-2">{commentError}</p>}
+                }}
+              />
+              <button
+                type="button" // Explicitly set type to "button" to prevent form submission
+                onClick={() => addComment(post._id)}
+                disabled={!commentInput[post._id]?.trim()}
+                className="bg-blue-500 text-white px-3 rounded-r-lg text-sm hover:bg-blue-600 disabled:opacity-50"
+              >
+                Post
+              </button>
             </div>
+            {commentError && <p className="text-red-500 text-sm mt-2">{commentError}</p>}
           </div>
         ))
       )}
