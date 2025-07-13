@@ -6,7 +6,7 @@ import { Link, useNavigate } from "react-router-dom"; // Ensure useNavigate is i
 // Move handleDelete above FeedPage so fetchPosts is in scope
 const handleDeleteFactory = (fetchPosts) => async (postId) => {
   try {
-    await axios.delete(`http://localhost:5000/api/posts/${postId}`);
+    await axios.delete(`${import.meta.env.VITE_API_BASE_URL}/api/posts/${postId}`);
     fetchPosts();
   } catch (error) {
     console.error("Delete post error:", error.message);
@@ -36,7 +36,7 @@ export default function FeedPage() {
       // so post.user._id and post.user.fullName are available.
       // Example backend (in server.js or post routes):
       // const posts = await Post.find().populate('user', 'fullName').sort({ createdAt: -1 });
-      const response = await axios.get("http://localhost:5000/api/posts");
+      const response = await axios.get("${import.meta.env.VITE_API_BASE_URL}/api/posts");
       setPosts(response.data);
     } catch (err) {
       console.error("Error fetching posts:", err);
@@ -51,7 +51,7 @@ export default function FeedPage() {
   const handleLike = async (postId) => {
     try {
       // Assuming your API expects userId in the body for liking
-      await axios.post(`http://localhost:5000/api/posts/${postId}/like`, { userId });
+      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/posts/${postId}/like`, { userId });
       fetchPosts(); // Re-fetch posts to update like counts and status
     } catch (error) {
       console.error("Error liking post:", error);
@@ -67,7 +67,7 @@ export default function FeedPage() {
     }
     setCommentError(null);
     try {
-      await axios.post(`http://localhost:5000/api/posts/${postId}/comments`, {
+      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/posts/${postId}/comments`, {
         userId, // Current user is the sender
         text,
       });
@@ -104,7 +104,7 @@ export default function FeedPage() {
     }
     setPostError(null); // Clear previous errors
     try {
-      await axios.post("http://localhost:5000/api/posts", {
+      await axios.post("${import.meta.env.VITE_API_BASE_URL}/api/posts", {
         userId, // The ID of the currently logged-in user
         description: description.trim(),
       });

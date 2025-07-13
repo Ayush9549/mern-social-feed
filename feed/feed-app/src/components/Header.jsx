@@ -20,7 +20,7 @@ const Header = () => {
     const fetchUserFullName = async () => {
       if (currentUserId) {
         try {
-          const response = await axios.get(`http://localhost:5000/api/user/get-user/${currentUserId}`);
+          const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/user/get-user/${currentUserId}`);
           setUserFullName(response.data.fullName);
         } catch (error) {
           console.error('Error fetching user full name for header:', error);

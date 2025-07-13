@@ -21,7 +21,7 @@ const ProfilePage = () => {
       }
       setIsLoading(true);
       try {
-        const response = await axios.get(`http://localhost:5000/api/user/get-user/${currentUserId}`);
+        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/user/get-user/${currentUserId}`);
         setUserName(response.data.fullName);
       } catch (error) {
         console.error('Error fetching user name:', error);
@@ -46,7 +46,7 @@ const ProfilePage = () => {
     try {
       // Assuming a PUT endpoint to update user profile
       console.log('Attempting to save name:', userName.trim(), 'for user ID:', currentUserId);
-      await axios.put(`http://localhost:5000/api/users/${currentUserId}`, {
+      await axios.put(`${import.meta.env.VITE_API_BASE_URL}/api/users/${currentUserId}`, {
         fullName: userName.trim()
       });
       setSuccessMessage('Name updated successfully!');

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import axios from "axios";
 
-const socket = io("http://localhost:5000", { transports: ["websocket"], reconnection: true });
+const socket = io("${import.meta.env.VITE_API_BASE_URL}", { transports: ["websocket"], reconnection: true });
 
 export default function ChatPage() {
   const { userId: receiverId } = useParams();
@@ -22,7 +22,7 @@ export default function ChatPage() {
   const fetchConversations = useCallback(async () => {
     if (!currentUserId) return;
     try {
-      const res = await axios.get(`http://localhost:5000/api/messages/conversations?id=${currentUserId}`);
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/messages/conversations?id=${currentUserId}`);
       const sortedConversations = res.data.sort((a, b) => {
         const timeA = a.lastMessage?.timestamp ? new Date(a.lastMessage.timestamp).getTime() : 0;
         const timeB = b.lastMessage?.timestamp ? new Date(b.lastMessage.timestamp).getTime() : 0;
@@ -66,7 +66,7 @@ export default function ChatPage() {
     const fetchMessages = async () => {
       if (currentUserId && receiverId) {
         try {
-          const res = await axios.get(`http://localhost:5000/api/messages/${currentUserId}/${receiverId}`);
+          const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/messages/${currentUserId}/${receiverId}`);
           setMessages(res.data);
           scrollToBottom();
           fetchConversations();
@@ -84,7 +84,7 @@ export default function ChatPage() {
     const fetchReceiverInfo = async () => {
       if (receiverId) {
         try {
-          const res = await axios.get(`http://localhost:5000/api/user/get-user/${receiverId}`);
+          const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/user/get-user/${receiverId}`);
           setReceiverName(res.data.fullName);
         } catch (err) {
           console.error("Failed to fetch receiver info:", err);

@@ -142,14 +142,14 @@ const SignupPage = () => {
       setErrors({}); // Clear any previous API errors
 
       // Register the user
-      await axios.post('http://localhost:5000/api/signup', {
+      await axios.post('${import.meta.env.VITE_API_BASE_URL}/api/signup', {
         fullName: username,
         email,
         password
       });
 
       // Log the user in after successful registration
-      const loginResponse = await axios.post('http://localhost:5000/api/login', {
+      const loginResponse = await axios.post('${import.meta.env.VITE_API_BASE_URL}/api/login', {
         email,
         password
       });
