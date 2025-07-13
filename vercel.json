@@ -1,29 +1,33 @@
 {
-    "version": 2,
-    "builds": [
-      {
-        "src": "backend/server.js",
-        "use": "@vercel/node",
-        "config": { "includeFiles": ["backend/**"] }
+  "version": 2,
+  "builds": [
+    {
+      "src": "backend/server.js",
+      "use": "@vercel/node",
+      "config": { "includeFiles": ["backend/**"] }
+    },
+    {
+      "src": "feed-app/package.json",
+      "use": "@vercel/static-build",
+      "config": { 
+        "distDir": "dist",
+        "buildCommand": "npm install && npm run build"
       },
-      {
-        "src": "feed-app/package.json",
-        "use": "@vercel/static-build",
-        "config": { "distDir": "dist" }
-      }
-    ],
-    "routes": [
-      {
-        "src": "/api/(.*)",
-        "dest": "backend/server.js"
-      },
-      {
-        "src": "/(.*)",
-        "dest": "feed-app/$1"
-      }
-    ],
-    "env": {
-      "MONGO_URI": "@mongo_uri",
-      "PORT": "5000"
+      "name": "frontend-build" // इस बिल्ड को एक नाम दिया गया है
     }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "backend/server.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "@frontend-build/$1"
+    }
+  ],
+  "env": {
+    "MONGO_URI": "@mongo_uri",
+    "PORT": "5000"
   }
+}
