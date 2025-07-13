@@ -13,7 +13,7 @@
         "distDir": "dist",
         "buildCommand": "npm install && npm run build"
       },
-      "name": "frontend-build" // इस बिल्ड को एक नाम दिया गया है
+      "name": "frontend-build"
     }
   ],
   "routes": [
