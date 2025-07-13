@@ -13,7 +13,7 @@
         "distDir": "dist",
         "buildCommand": "npm install && npm run build"
       },
-      "name": "frontend-build"
+      "output": "frontend-build"
     }
   ],
   "routes": [
