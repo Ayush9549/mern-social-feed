@@ -12,8 +12,7 @@
       "config": { 
         "distDir": "dist",
         "buildCommand": "npm install && npm run build"
-      },
-      "output": "frontend-build"
+      }
     }
   ],
   "routes": [
@@ -23,7 +22,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "@frontend-build/$1"
+      "dest": "feed-app/$1"
     }
   ],
   "env": {
